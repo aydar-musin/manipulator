@@ -30,6 +30,32 @@ bool Validate(Angles* angles)
   else return 0;
     
 }
+bool ValidateAngle(int * angle, int servoNumber)
+{
+  if(servoNumber==0)
+  {
+  if(*angle<MAX_Q1 && *angle> MIN_Q1)
+  return 1;
+  else 
+  return 0;
+  }
+  else if(servoNumber==1)
+  {
+    if(*angle<MAX_Q2 && *angle> MIN_Q2)
+    return 1;
+    else 
+    return 0;
+  }
+  else if(servoNumber==2)
+  {
+    if(*angle<MAX_Q3 && *angle> MIN_Q3)
+  return 1;
+  else 
+  return 0;
+  }
+  else
+  return 0;
+}
 Angles GetAngles(int x,int y,int z, int L1,int L2, bool reverse=0)
 {
   float B=sqrt(x*x+y*y+z*z);
@@ -69,5 +95,12 @@ Angles GetAngles(int x,int y,int z, int L1,int L2, bool reverse=0)
   
   return ang;
 }
-
+Position GetPosition(Angles * angles,int L1,int L2)
+{
+  Position pos;
+  pos.X=L1*cos(angles->Q1)+L2*cos(angles->Q1+angles->Q2);
+  pos.Y=L1*sin(angles->Q1)+L2*sin(angles->Q1+angles->Q2);
+  pos.Z=0;
+  return pos;
+}
 

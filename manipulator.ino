@@ -14,134 +14,122 @@ Angles curAngles;
 //these are target angles
 Angles tAngles;
 
-short position_index=-1;//index of position
-bool flag=0;//flag for switch position
-int pos_n=6;
-Position positions[6]={{25,12,-10},{40,0,0},{10,10,10},{0,40,0},{25,12,0},{20,20,0}};
+#define BUT1 0
+#define BUT2 1
+#define BUT3 2
+#define BUT4 3
+#define BUT5 4
+#define BUT6 5
 
-int _step=1;
+#define MDELAY 2
+#define SERVOSTEP 2
 
-void switch_pos()
+byte getButtonValue(byte number)
 {
-  flag=0;
-  position_index++;
-  if(position_index<pos_n)
+  int value=analogRead((int)number);
+  delay(MDELAY);
+  value+=analogRead((int)number);
+  delay(MDELAY);
+  value+=analogRead((int)number);
+  delay(MDELAY);
+  value+=analogRead((int)number);
+  
+  return value; 
+}
+byte getState(byte servo)
+{
+  if(servo==0)
   {
-    Position pos=positions[position_index];
-    tAngles=GetAngles(pos.X,pos.Y,pos.Z,20,20);
+    if(getButtonValue(BUT1)==0) return 1; // UP
+    else if (getButtonValue(BUT4)==0) return 2; // DOWN
+    else return 0; // NONE
   }
-  else
+  else if(servo==1)
   {
-    Serial.println("riched");
-    delay(500);
-    position_index=-1;
-    switch_pos();
+    if(getButtonValue(BUT2)==0) return 1; // UP
+    else if (getButtonValue(BUT5)==0) return 2; // DOWN
+    else return 0; // NONE
+  }
+  else if(servo==2)
+  {
+    if(getButtonValue(BUT3)==0) return 1; // UP
+    else if (getButtonValue(BUT6)==0) return 2; // DOWN
+    else return 0; // NONE
   }
 }
+
 void setup() {
   Serial.begin(9600);
   
   servo1.attach(9);
   servo2.attach(8);
   servo3.attach(10);
+  servo1.write(0);
+  servo2.write(0);
+  servo3.write(0);
   
   curAngles.Q1=0;
   curAngles.Q2=0;
   curAngles.Q3=0;
-
-  //Timer1.initialize(200000);
-  //Timer1.attachInterrupt(timer_tick);
-  switch_pos();
 }
-
-void loop() {
-  if(flag)
-  {
-    switch_pos();
-  }
-  timer_tick();
-  delay(20);
-  // put your main code here, to run repeatedly:
-  
-  //MoveServo(&servo1, Q1, 100);
-  //MoveServo(&servo2, 0,180);
-  //delay(1000);
-  //MoveServo(&servo1, 100, 0);
-  //MoveServo(&servo2,180,0);
-}
-void timer_tick()
+void moveServo(Servo * servo, int * currentAngle, byte state, byte servoNumber)
 {
-  if(curAngles.Q1<tAngles.Q1)
-  {
-    curAngles.Q1+=_step;
-  }
-  else if(curAngles.Q1>tAngles.Q1)
-  {
-    curAngles.Q1-=_step;
-  }
+ if(state==1)
+ {
+  *currentAngle+=SERVOSTEP;
+  if(ValidateAngle(currentAngle,servoNumber))
+  servo->write(*currentAngle);
+  else *currentAngle-=SERVOSTEP;
   
-  if(curAngles.Q2<tAngles.Q2)
-  {
-    curAngles.Q2+=_step;
-  }
-  else if(curAngles.Q2>tAngles.Q2)
-  {
-    curAngles.Q2-=_step;
-  }
+ }
+ else if(state==2 && (*currentAngle)>0)
+ {
+  *currentAngle-=SERVOSTEP;
   
-  if(curAngles.Q3<tAngles.Q3)
-  {
-    curAngles.Q3+=_step;
-  }
-  else if(curAngles.Q3>tAngles.Q3)
-  {
-    curAngles.Q3-=_step;
-  }
-
+  if(ValidateAngle(currentAngle,servoNumber))
+  servo->write(*currentAngle);
+  else *currentAngle+=SERVOSTEP;
+ }
+}
+void loop() {
+  DoButtonMovements();
+}
+void DoButtonMovements()
+{
+  byte state=getState(0); 
+  moveServo(&servo1, &curAngles.Q1, state,0);
+  state=getState(1);
+  moveServo(&servo2, &curAngles.Q2, state,1);
+  
+  state=getState(2);
+  moveServo(&servo3, &curAngles.Q3, state,2);
   printState();
-  servo1.write(curAngles.Q1);
-  servo2.write(curAngles.Q2);
-  servo3.write(curAngles.Q3);
-  if(curAngles.Q1==tAngles.Q1&&curAngles.Q2==tAngles.Q2&&curAngles.Q3==tAngles.Q3)
-  {
-    flag=1;
-  }
-  else
-  {
-    
-  }
+  delay(10);
 }
 void printState()
 {
-  Serial.print(curAngles.Q1);
-  Serial.print("\t");
-  Serial.print(curAngles.Q2);
-  Serial.print("\t");
-  Serial.print(curAngles.Q3);
-  Serial.print("\t--->");
-  Serial.print(tAngles.Q1);
-  Serial.print("\t");
-  Serial.print(tAngles.Q2);
-  Serial.print("\t");
-  Serial.print(tAngles.Q3);
-  Serial.print("\n");
-}
-void MoveServo(Servo *servo, int current_angle,int angle)
-{
   
-  /*while(current_angle!=angle)
-  {
-    if(current_angle<angle)
-    {
-      current_angle++;
-    }
-    else
-    {
-      current_angle--;
-    }
+  Serial.print(curAngles.Q1);
+  Serial.print(" ");
+  Serial.print(curAngles.Q2);
+  Serial.print(" ");
+  Serial.print(curAngles.Q3);
+  Serial.print(" --->");
+  Serial.print(tAngles.Q1);
+  Serial.print(" ");
+  Serial.print(tAngles.Q2);
+  Serial.print(" ");
+  Serial.print(tAngles.Q3);
+  
+  //Serial.print(" ||| ");
 
-    servo->write(current_angle);
-    delay(20);
-  }*/
+  //Position pos=GetPosition(&curAngles,L1,L2);
+  //Serial.print(pos.X);
+  //Serial.print(" ");
+  //Serial.print(pos.Y);
+  //Serial.print(" ");
+  //Serial.print(pos.Z);
+  Serial.print("\n");
+  
 }
 
